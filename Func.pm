@@ -171,7 +171,17 @@ sub sd {
 	}
     }
     else {
-    	sendp(Ether()/$packet);
+	  my $typ = 0x800;
+
+	  if (((ref $packet eq "Packet") && (ref $packet->{layers_list}[0] eq "IPv6")) || (ref $packet eq "IPv6")) {
+		$typ = 0x86dd;
+	  }
+
+	  if (((ref $packet eq "Packet") && (ref $packet->{layers_list}[0] eq "Dot1Q")) || (ref $packet eq "Dot1Q")) {
+		$typ = 0x8100;
+	  }
+
+	  sendp(Ether(type=>$typ)/$packet);
     }
 }
 
@@ -261,7 +271,9 @@ sub sendp {
     }
     
     # Opening the interface
-    $pcap = Net::Pcap::open_live($iface, $MTU, $promisc, $timeout, \$err);
+    if(not defined $pcap) {
+	  $pcap = Net::Pcap::open_live($iface, $MTU, $promisc, $timeout, \$err);
+    }
 
     if(not defined $pcap) {
 	croak "Pcap: can't open device: $err\n";
@@ -269,11 +281,21 @@ sub sendp {
 
     # Sending the packet with PCAP
     if(Net::Pcap::sendpacket($pcap, $packet->tonet()) == 0) {
-	print "Sent on $iface.\n";
+		#print "Sent on $iface.\n";
     }
     else {
 	croak "Pcap: error while sending packet on $iface\n";
     }
+
+	# gcla
+	#Net::Pcap::close($pcap);
+}
+
+sub close {
+  # gcla
+  our $pcap;
+  Net::Pcap::close($pcap);
+  undef $pcap;
 }
 
 1;

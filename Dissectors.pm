@@ -34,6 +34,72 @@ sub init {
 	 ];
 }
 
+# Dissector for Dot1Q (for VLANs)
+package Dot1Q;
+
+our @ISA = qw(Layer);
+*AUTOLOAD = \&Scaperl::AUTOLOAD;
+
+use constant ETH_TYPE_IP => 0x0800;
+
+sub init {
+    my $self = shift;
+
+    $self->{protocol} = "Dot1Q";
+
+    # all these fields need to be initially available
+    $self->{fields_desc} = 
+    [
+     XShortField("prio",0),
+     XShortField("id",0),
+     XShortField("vlan",1),
+     XShortField("priority_cfi_id",1),
+     XShortField("type", ETH_TYPE_IP)
+    ];
+}
+
+sub pre_send {
+    my $self = shift;
+    my ($underlayer, $payload) = @_;
+
+    # first 3 bits
+    my $priority = ($self->{prio} & 0x07) << 13;
+    # next 1 
+    my $cfi = ($self->{id} & 0x01) << 12;
+    # remaining 12 bits
+    my $id = $self->{vlan} & 0x07F;
+
+    my $priority_cfi_id = ($priority + $cfi + $id);
+
+    $self->{priority_cfi_id} = $priority_cfi_id;
+
+    # these will only be sent out for crafting
+    $self->{fields_desc} = 
+    [
+     XShortField("priority_cfi_id",$priority_cfi_id),
+     XShortField("type", ETH_TYPE_IP)
+    ];
+
+}
+
+
+
+# Dissector for ZeroPadding
+package ZeroPadding;
+
+our @ISA = qw(Layer);
+*AUTOLOAD = \&Scaperl::AUTOLOAD;
+
+sub init {
+    my $self = shift;
+
+    $self->{protocol} = "ZeroPadding";
+    $self->{fields_desc} =
+	[
+	 VarLengthZero("len", "14")
+	 ];
+}
+
 # Dissector for IPv4
 package IP;
 
@@ -70,8 +136,44 @@ sub pre_send {
     $self->{len} = 20 + length($payload);
 
     # Checksum
-    $self->{chksum} = 0;
-    $self->{chksum} = $self->checksum($self->tonet());
+    if ($self->{chksum} == 0) {
+        $self->{chksum} = 0;
+        $self->{chksum} = $self->checksum($self->tonet());
+    }
+}
+
+# Dissector for IPv6
+package IPv6;
+
+our @ISA = qw(Layer);
+*AUTOLOAD = \&Scaperl::AUTOLOAD;
+
+# Constants for IP proto field
+use constant IP_PROTO_TCP => 6;
+
+sub init {
+    my $self = shift;
+
+    $self->{protocol} = "IPv6";
+    $self->{fields_desc} =
+	[
+	 XByteField("version_ihl", 0x60),
+	 XByteField("dummy1", 0),
+	 ShortField("dummy2", 0),
+	 ShortField("len", 20),
+	 ByteField("proto", IP_PROTO_TCP),
+	 ByteField("hop", 64),
+	 IPv6Field("src", "::1"),
+	 IPv6Field("dst", "::1"),
+	 ];
+}
+
+sub pre_send {
+    my $self = shift;
+    my ($underlayer, $payload) = @_;
+
+    # Total length
+    $self->{len} = length($payload);
 }
 
 # Dissector for ICMP
@@ -164,8 +266,10 @@ sub pre_send {
 				 $underlayer->{proto},
 				 length($self->tonet().$payload));
 
+        if ($self->{chksum} == 0) {
 	$self->{chksum} = 0;
 	$self->{chksum} = $self->checksum($pseudo_header.$self->tonet().$payload);
+        }
     }
 }
 

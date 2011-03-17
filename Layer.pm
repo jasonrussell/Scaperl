@@ -15,6 +15,8 @@ our $layer_bounds = {
     
     Ether => [
 	      ["type", 0x800, "IP"],
+              ["type", 0x8100, "Dot1Q"],
+	      ["type", 0x86dd, "IPv6"],
 	      ],
 
     ClassicBSDLoopback => [

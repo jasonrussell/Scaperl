@@ -13,6 +13,9 @@
 use warnings;
 use strict;
 
+use Net::IP qw(:PROC);
+use Math::BigInt;
+
 # General field class
 package Field;
 
@@ -204,6 +207,90 @@ sub fromnet {
 
     return join(".", $n1, $n2, $n3, $n4);
 }
+
+# Field for an IP address
+package IPv6Field;
+
+# inet_aton function needed
+use Socket;
+
+our @ISA = qw(Field);
+
+sub init {
+    my $self = shift;
+    $self->{format} = "N4";
+    $self->{ip_addr} = undef;
+}
+
+sub tonet {
+    my $self = shift;
+    my ($value) = @_;
+
+    if(not defined $self->{ip_addr}) {
+	  if (Net::IP::ip_is_ipv4($value)) {
+		$value = "::ffff:" . $value;
+	  }
+	  my $ip = new Net::IP($value, 6);
+	  $self->{ip_addr} = $ip->intip();
+    }
+
+    # Get the bytes in an string array
+
+    my @bytes;
+    if (defined $self->{ip_addr}) {
+	my $num = $self->{ip_addr}->copy();
+	$bytes[3] = $num & 0xffffffff;
+	$num->brsft(32);
+	$bytes[2] = $num & 0xffffffff;
+	$num->brsft(32);
+	$bytes[1] = $num & 0xffffffff;
+	$num->brsft(32);
+	$bytes[0] = $num & 0xffffffff;
+    }
+
+    return pack($self->{format}, @bytes);
+}
+
+sub fromnet {
+    my $self = shift;
+    my @value = @_;
+	my $val = Math::BigInt->new($value[0]);
+	$val->blsft(32);
+	$val += $value[1];
+	$val->blsft(32);
+	$val += $value[2];
+	$val->blsft(32);
+	$val += $value[3];
+	my $ip = ip_bintoip(ip_inttobin($val));
+	return $ip->print();
+}
+
+
+# Field for a variable length Zero field
+package VarLengthZero;
+
+our @ISA = qw(Field);
+
+sub init {
+    my $self = shift;
+}
+
+sub tonet {
+    my $self = shift;
+    my ($value) = @_;
+
+    my @bytes;
+	my $format = "x" x $value;
+    return pack($format, @bytes);
+}
+
+sub fromnet {
+    my $self = shift;
+    my @value = @_;
+
+	return "zeroes";
+}
+
 
 # Field for an MAC address
 package MACField;

@@ -73,7 +73,7 @@ sub tonet {
     foreach (@{$self->{layers_list}}) {
 
 	# Only some protocols need to be aware of upper layers
-	if($_->{protocol} eq "IPv4" or $_->{protocol} eq "TCP" or $_->{protocol} eq "ICMP" or $_->{protocol} eq "UDP") {
+	if($_->{protocol} eq "IPv4" or $_->{protocol} eq "IPv6" or $_->{protocol} eq "TCP" or $_->{protocol} eq "ICMP" or $_->{protocol} eq "UDP") {
 	    $payload = $self->get_payload(\$_);
 	}
 	
