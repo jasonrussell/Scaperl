@@ -1,6 +1,7 @@
 #! /usr/bin/env perl
 # -*- coding: iso-8859-1 -*-
 
+# Copyright (C) 2011 Graham Clark, Jason Russell
 # Copyright (C) 2006 Sylvain SARMEJEANNE
 
 # This program is free software; you can redistribute it and/or modify it under the terms of the

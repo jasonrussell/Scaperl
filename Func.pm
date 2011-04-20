@@ -1,6 +1,7 @@
 #! /usr/bin/env perl
 # -*- coding: iso-8859-1 -*-
 
+# Copyright (C) 2011 Graham Clark, Jason Russell
 # Copyright (C) 2006 Sylvain SARMEJEANNE
 
 # This program is free software; you can redistribute it and/or modify it under the terms of the
@@ -14,6 +15,11 @@ use warnings;
 use strict;
 
 use Carp;
+use POSIX;
+use Storable;
+use Clone qw(clone);
+
+
 
 # MTU
 our $MTU = 1500;
@@ -108,6 +114,120 @@ sub sniff {
     # Closing
     $SIG{INT} = 'DEFAULT';
     Net::Pcap::close($pcap);
+}
+
+# function added to perform fragmentation, for IPv4 right now
+sub fragment {
+    my ($packet, $fragmentsize) = @_;
+    my $fragmentoffset;
+    my @scaperlpacketlist = ();
+
+    # we need to get closer to the octet
+    if (!($fragmentsize%8 == 0)) {
+        $fragmentoffset = 8-($fragmentsize%8);
+        $fragmentsize = $fragmentsize + $fragmentoffset;
+    }
+
+    # ipv4 flag
+    my $isipv4on = 0;
+    my $layerindex = 0;
+
+    for (my $i=0; $i < $#{$packet->{layers_list}}; $i++) {
+
+        # IPv4 address
+        if (ref $packet->{layers_list}[$i] eq "IP") {
+            $layerindex = $i;
+            $isipv4on = 1;
+            last;
+        }
+
+    }
+
+    # ipv4 layer was found, fragment that IP layer
+    if ($isipv4on) {
+
+        my $ippayloadsize =  length($packet->get_payload((\$packet->{layers_list}[$layerindex])));
+        my $datacount = ceil($ippayloadsize/$fragmentsize);
+
+
+        my $offset = 0;
+
+        # create a fragmented packet with the payload equal to fragment size
+        for (my $i=0;$i<$datacount;$i++) {
+           
+            my $scaperlpacket = "";
+            $offset = $offset + ($fragmentsize/8);
+           
+            # each layer up until the IP layer will stay the same
+            for (my $j=0;$j<($layerindex+1);$j++) {
+
+                my $layer = $packet->{layers_list}[$j];
+
+                # some things need to get modified
+                if (ref $layer eq "IP") {
+
+                    # last packet
+                    if ($j == $layerindex) {
+                        $layer->{flags_offset} = $offset;
+                    }
+                   
+                    # other fragments
+                    else {
+                       # 0x2000 is More Fragments
+	               $layer->{flags_offset} = 0x2000 | $offset;
+                    }
+               
+                }
+                
+                if (ref $scaperlpacket ne "Scaperl") {
+                    $scaperlpacket = $layer;
+                }
+                else {
+                   $scaperlpacket = $scaperlpacket / $layer;
+                }
+            }
+
+            my $newscaperlpacket = clone($scaperlpacket);
+
+
+            # packet up until IP Layer stayed the same, IP layer fragmented
+            # keep all layers copied over until we run into the Raw data
+            my $k = $layerindex;
+
+            while ($k < $#{$packet->{layers_list}}+1) {
+
+                if (ref $packet->{layers_list}[$k] eq "Raw") {
+                    my $rawpayload = $packet->{layers_list}[$k]->{load};
+                    my $quotient = ceil(length($rawpayload)/$datacount);
+                    my $payloadoffset = $i*$quotient;
+
+                    my $rawpayloadfragment = "";
+                    if (length(substr($rawpayload,$payloadoffset)) >= $quotient) {
+                        $rawpayloadfragment = substr($rawpayload,$payloadoffset,$quotient);
+                    }
+                    else {
+                        $rawpayloadfragment = substr($rawpayload,$payloadoffset);
+                    }
+                    $newscaperlpacket = $newscaperlpacket/$rawpayloadfragment;
+                }
+
+                else {
+                    $newscaperlpacket = $newscaperlpacket/$packet->{layers_list}[$k];
+                }
+
+                $k++;
+
+
+            }
+
+           push(@scaperlpacketlist,$newscaperlpacket);
+        }
+
+
+    }
+
+    return \@scaperlpacketlist;
+
 }
 
 # Default callback function for sniff (simple packet display)

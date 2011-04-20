@@ -1,6 +1,7 @@
 #! /usr/bin/env perl
 # -*- coding: iso-8859-1 -*-
 
+# Copyright (C) 2011 Graham Clark, Jason Russell
 # Copyright (C) 2006 Sylvain SARMEJEANNE
 
 # This program is free software; you can redistribute it and/or modify it under the terms of the
@@ -67,7 +68,7 @@ sub pre_send {
     # next 1 
     my $cfi = ($self->{id} & 0x01) << 12;
     # remaining 12 bits
-    my $id = $self->{vlan} & 0x07F;
+    my $id = $self->{vlan} & 0x07FF;
 
     my $priority_cfi_id = ($priority + $cfi + $id);
 

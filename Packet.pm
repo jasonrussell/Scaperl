@@ -12,6 +12,9 @@
 
 # A Packet is a linked list of Layers
 package Packet;
+use Storable;
+use Clone;
+push @Packet::ISA, 'Clone';
 
 use warnings;
 use strict;
@@ -39,6 +42,16 @@ sub new {
     $self->{layers_list} = $args;
 
     return $self;
+}
+
+sub copy
+{
+    my ( $self ) = @_;
+    my ( $new );
+    %{ $new } = dclone($self);
+
+    bless $new, 'Packet';
+    return $new;
 }
 
 # Converts an object to a string
