@@ -411,6 +411,81 @@ sub sendp {
 	#Net::Pcap::close($pcap);
 }
 
+# given a filename and optionally a count of packets to read (-1 disables it),
+# returns an array of packets in the Scaperl
+# The only caveats are that this was only tested for IPv4 and the packets are
+# not out of the norm (e.g VLANs)
+sub rdpcap {
+
+    my ($filename, $count) = @_;
+
+    if (not defined $count) {
+        $count = -1;
+    }
+    my $magic = "";
+    my $header = "";
+    my $scaperlpacket = "";
+    my @scaperllist = ();
+    my $packetsread = 0;
+    my $packet = "";
+
+    # little endian short and long by default
+    my $ushort = "v";
+    my $ulong = "V";
+
+    # read pcap file
+    open FILE, "<$filename" or die $!;
+    my $numbytes = read FILE, $magic, 4;
+
+    if ($numbytes != 4) {die "Not a valid pcap capture file (too short)" };
+
+    # detected file is big endian
+    if ($magic eq "\xa1\xb2\xc3\xd4") {
+        $ushort = "n";
+        $ulong = "N";
+    }
+    # detected file is little endian
+    elsif ($magic eq "\xd4\xc3\xb2\xa1") {
+        # do nothing
+    }
+    else {
+        die "Not a valid pcap capture file (bad magic)\n";
+    }
+
+    # read the global header data - doing nothing with them but may need them
+    # later
+    $numbytes = read FILE, $header, 20;
+
+    if ($numbytes<20) {
+        die "Invalid pcap file (got past the magic, but too short)\n";
+    }
+
+    my ($version_major, $version_minor, $thiszone, $sigfigs, $snaplen, $network) = unpack($ushort . $ushort . $ulong . $ulong . $ulong . $ulong,$header);
+
+    # read packets
+
+    # initial packet read into header
+    $numbytes = read FILE, $header, 16;
+
+    # Either the amount of data read for the packet is correct or the amount 
+    # of packets read is specified and is not read yet
+    while (($numbytes == 16) && ($count == -1 || ($count > -1 && $packetsread < $count)) ) {
+
+        # frame headers
+	my ($ts_sec,$ts_usec,$incl_len,$orig_len) = unpack($ulong . $ulong . $ulong . $ulong,$header);
+	$numbytes = read FILE, $packet, $incl_len;
+
+        $scaperlpacket = Ether($packet);
+        push(@scaperllist,$scaperlpacket);
+
+        $numbytes = read FILE, $header, 16;
+        $packetsread++;
+    }
+
+    return \@scaperllist;
+
+}
+
 sub close {
   # gcla
   our $pcap;
