@@ -68,7 +68,7 @@ sub pre_send {
     # next 1 
     my $cfi = ($self->{id} & 0x01) << 12;
     # remaining 12 bits
-    my $id = $self->{vlan} & 0x07FF;
+    my $id = $self->{vlan} & 0x0FFF;
 
     my $priority_cfi_id = ($priority + $cfi + $id);
 
