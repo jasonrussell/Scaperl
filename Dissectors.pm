@@ -1,7 +1,7 @@
 #! /usr/bin/env perl
 # -*- coding: iso-8859-1 -*-
 
-# Copyright (C) 2011 Graham Clark, Jason Russell
+# Copyright (C) 2011,2012 Graham Clark, Jason Russell
 # Copyright (C) 2006 Sylvain SARMEJEANNE
 
 # This program is free software; you can redistribute it and/or modify it under the terms of the
@@ -335,5 +335,111 @@ sub init {
 	 LELongField("header", 2),
 	 ];
 }
+
+# Dissector for HTTPRequest
+package HTTPRequest;
+
+our @ISA = qw(Layer);
+*AUTOLOAD = \&Scaperl::AUTOLOAD;
+
+sub init {
+    my $self = shift;
+
+    $self->{protocol} = "HTTPRequest";
+
+    # header fields from rfc2616
+    $self->{fields_desc} =
+	[
+	 StrField("method", "GET"),
+	 StrField("space"," "),
+	 StrField("uri", "/"),
+	 StrField("space"," "),
+	 StrField("httpversion","HTTP/1.1"),
+         StrField("crlf","\r\n"),
+	 HeaderField("accept","Accept",""),
+	 HeaderField("acceptcharset","Accept-Charset",""),
+	 HeaderField("acceptencoding","Accept-Encoding",""),
+	 HeaderField("acceptlanguage","Accept-Language",""),
+	 HeaderField("authorization","Authorization",""),
+	 HeaderField("expect","Expect",""),
+	 HeaderField("from","From",""),
+	 HeaderField("host","Host",""),
+	 HeaderField("ifmatch","If-Match",""),
+	 HeaderField("ifmodifiedsince","If-Modified-Since",""),
+	 HeaderField("maxforwards","Max-Forwards",""),
+	 HeaderField("proxyauthorization","Proxy-Authorization",""),
+	 HeaderField("range","Range",""),
+	 HeaderField("referer","Referer",""),
+	 HeaderField("te","TE",""),
+	 HeaderField("useragent","User-Agent",""),
+         StrField("crlf","\r\n"),
+         StrField("requestbody",""),
+         StrField("crlf","\r\n")
+	 ];
+}
+
+# Dissector for HTTPResponse
+package HTTPResponse;
+
+our @ISA = qw(Layer);
+*AUTOLOAD = \&Scaperl::AUTOLOAD;
+
+sub init {
+    my $self = shift;
+
+    $self->{protocol} = "HTTPResponse";
+
+    # header fields from rfc2616 and wikipedia ;)
+    $self->{fields_desc} =
+	[
+	 StrField("httpversion","HTTP/1.1"),
+	 StrField("space"," "),
+	 StrField("statuscode","200"),
+	 StrField("space"," "),
+	 StrField("statusmessage","OK"),
+         StrField("crlf","\r\n"),
+	 HeaderField("acceptranges","Accept-Ranges",""),
+	 HeaderField("age","Age",""),
+	 HeaderField("allow","Allow",""),
+	 HeaderField("cachecontrol","Cache-Control",""),
+	 HeaderField("connection","Connection",""),
+	 HeaderField("contentencoding","Content-Encoding",""),
+	 HeaderField("contentlanguage","Content-Language",""),
+	 HeaderField("contentlength","Content-Length",""),
+	 HeaderField("contentlocation","Content-Location",""),
+	 HeaderField("contentmd5","Content-MD5",""),
+	 HeaderField("contentdisposition","Content-Disposition",""),
+	 HeaderField("contentrange","Content-Range",""),
+	 HeaderField("contenttype","Content-Type",""),
+	 HeaderField("date","Date",""),
+	 HeaderField("etag","ETag",""),
+	 HeaderField("expires","Expires",""),
+	 HeaderField("lastmodified","Last-Modified",""),
+	 HeaderField("link","Link",""),
+	 HeaderField("location","Location",""),
+	 HeaderField("p3p","P3P",""),
+	 HeaderField("pragma","Pragma",""),
+	 HeaderField("proxyauthenticate","Proxy-Authenticate",""),
+	 HeaderField("refresh","Refresh",""),
+	 HeaderField("retryafter","Retry-After",""),
+	 HeaderField("server","Server",""),
+	 HeaderField("setcookie","Set-Cookie",""),
+	 HeaderField("stricttransportsecurity","Strict-Transport-Security",""),
+	 HeaderField("trailer","Trailer",""),
+	 HeaderField("transferencoding","Transfer-Encoding",""),
+	 HeaderField("vary","Vary",""),
+	 HeaderField("via","Via",""),
+	 HeaderField("warning","Warning",""),
+	 HeaderField("wwwauthenticate","WWW-Authenticate",""),
+         StrField("crlf","\r\n"),
+
+         StrField("body",""),
+
+
+	 ];
+}
+
+
+
 
 1;

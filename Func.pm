@@ -1,7 +1,7 @@
 #! /usr/bin/env perl
 # -*- coding: iso-8859-1 -*-
 
-# Copyright (C) 2011 Graham Clark, Jason Russell
+# Copyright (C) 2011,2012 Graham Clark, Jason Russell
 # Copyright (C) 2006 Sylvain SARMEJEANNE
 
 # This program is free software; you can redistribute it and/or modify it under the terms of the
@@ -399,8 +399,31 @@ sub sendp {
 	croak "Pcap: can't open device: $err\n";
     }
 
+    # Get stats
+    my %stats = ();
+
+
+   
     # Sending the packet with PCAP
     if(Net::Pcap::sendpacket($pcap, $packet->tonet()) == 0) {
+        Net::Pcap::stats($pcap,\%stats);
+        my $drop = $stats{'ps_drop'};
+        
+        # we have some dropped packets, reopen the packet capture device
+        # and send the packet again
+        while ($drop > 0) {
+	    Net::Pcap::close($pcap);
+	    $pcap = Net::Pcap::open_live($iface, $MTU, $promisc, $timeout, \$err);
+
+            if(not defined $pcap) {
+	        croak "Pcap: can't open device: $err\n";
+            }
+
+            Net::Pcap::sendpacket($pcap, $packet->tonet());
+            Net::Pcap::stats($pcap,\%stats);
+            $drop = $stats{'ps_drop'};
+
+        }
 		#print "Sent on $iface.\n";
     }
     else {

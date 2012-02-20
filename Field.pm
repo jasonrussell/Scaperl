@@ -1,6 +1,7 @@
 #! /usr/bin/env perl
 # -*- coding: iso-8859-1 -*-
 
+# Copyright (C) 2011,2012 Graham Clark, Jason Russell
 # Copyright (C) 2006 Sylvain SARMEJEANNE
 
 # This program is free software; you can redistribute it and/or modify it under the terms of the
@@ -83,6 +84,51 @@ sub tohuman {
     my ($value) = @_;
     return '"'.$value.'"';
 }
+
+# Field for a header 
+package HeaderField;
+
+#our @ISA = qw(Field);
+
+sub new {
+    my $class = shift;
+
+    my $self = {
+	name => "$_[0]",
+        headername => "$_[1]",
+	default_value => "$_[2]",
+	format => undef
+	};
+
+    bless($self, $class);
+    $self->init();
+
+    return $self;
+}
+
+sub init {
+    my $self = shift;
+    $self->{format} = "A*";
+}
+
+sub tonet {
+    my $self = shift;
+    my ($value) = @_;
+    if ($value ne "") {
+        return $self->{headername} . ":" . $value . "\r\n";
+    }
+
+    return "";
+}
+
+sub tohuman {
+    my $self = shift;
+    my ($value) = @_;
+    return '"'.$value.'"';
+}
+
+
+
 
 # Field for one byte
 package ByteField;

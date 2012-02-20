@@ -1,7 +1,6 @@
 #! /usr/bin/env perl
 # -*- coding: iso-8859-1 -*-
 
-# Copyright (C) 2011 Graham Clark, Jason Russell 
 # Copyright (C) 2006 Sylvain SARMEJEANNE
 
 # This program is free software; you can redistribute it and/or modify it under the terms of the
@@ -19,7 +18,7 @@ use warnings;
 
 # Welcome :)
 my $VERSION = "0.1";
-my $welcome = "Welcome to Scaperl ($VERSION) Copyright 2011 Graham Clark, Jason Russell\nCopyright 2006 Sylvain SARMEJEANNE\n. If you're lost, just shout for \"help\".\n";
+my $welcome = "Welcome to Scaperl ($VERSION) Copyright 2006 Sylvain SARMEJEANNE\nIf you're lost, just shout for \"help\".\n";
 print $welcome;
 
 # Setting the terminal
@@ -30,7 +29,7 @@ $scaperl->ornaments(0);
 
 # Completion for functions and dissectors
 our @FUNCTION_LIST = qw(sd sendp str sniff);
-our @DISSECTOR_LIST = qw(Ether Dot1Q IP ICMP TCP UDP Raw ClassicBSDLoopback OpenBSDLoopback);
+our @DISSECTOR_LIST = qw(Ether IP ICMP TCP UDP Raw ClassicBSDLoopback OpenBSDLoopback);
 
 my $attribs = $scaperl->Attribs;
 $attribs->{completion_function} = sub {return (@FUNCTION_LIST, @DISSECTOR_LIST);};
